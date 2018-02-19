@@ -174,3 +174,6 @@ export const SET_VIDEO_PAUSE = 'SET_VIDEO_PAUSE';
 export const MEDIA_PLAY = 'MEDIA_PLAY';
 export const MEDIA_PAUSE = 'MEDIA_PAUSE';
 export const MEDIA_POSITION = 'MEDIA_POSITION';
+
+// Publishing
+export const UPDATE_PUBLISH_FILE = 'UPDATE_PUBLISH_FILE';

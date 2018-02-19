@@ -506,6 +506,7 @@ class PublishForm extends React.PureComponent {
   // }
 
   handleFileChange(event: SyntheticInput<*>) {
+    const { updateFilePath } = this.props;
     const { target: { files } } = event;
 
     if (!files.length) {
@@ -513,10 +514,15 @@ class PublishForm extends React.PureComponent {
       return;
     }
 
-    const chosenFile = 
+    const chosenFile = files[0];
+    const { path } = chosenFile;
+    if (path) {
+      updateFilePath(path);
+    }
   }
 
   render() {
+    console.log('render');
     // const { mode, submitting } = this.state;
     //
     // const lbcInputHelp = __('This LBC remains yours and the deposit can be undone at any time.');
@@ -527,12 +533,9 @@ class PublishForm extends React.PureComponent {
     //   submitLabel = !submitting ? __('Update') : __('Updating...');
     // }
 
-    console.log('props', this.props);
+    // console.log('props', this.props);
 
-    const onFileChange = (e) => {
-      console.log('e', e);
-      debugger;
-    }
+    const { filePath } = this.props;
 
     return (
       <Form onSubmit={() => {}}>
@@ -552,6 +555,7 @@ class PublishForm extends React.PureComponent {
             }
           />
         </div>
+        {filePath && <div>got it</div>}
       </Form>
     );
 

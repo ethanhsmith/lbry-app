@@ -17,30 +17,35 @@ import {
   doPublish,
 } from 'redux/actions/content';
 import { selectBalance } from 'redux/selectors/wallet';
+import { doUpdateFilePath } from 'redux/actions/publish';
 import rewards from 'rewards';
 import PublishPage from './view';
 
 const select = (state, props) => {
   // debugger;
+  const publishState = state.publish;
+  console.log("publish", publishState)
   return {
-    balance: selectBalance(state),
-    myClaims: selectMyClaims(state),
-    fetchingChannels: selectFetchingMyChannels(state),
-    channels: selectMyChannelClaims(state),
-    claimsByUri: selectClaimsByUri(state),
-    resolvingUris: selectResolvingUris(state),
+    ...publishState
+    // balance: selectBalance(state),
+    // myClaims: selectMyClaims(state),
+    // fetchingChannels: selectFetchingMyChannels(state),
+    // channels: selectMyChannelClaims(state),
+    // claimsByUri: selectClaimsByUri(state),
+    // resolvingUris: selectResolvingUris(state),
   }
 };
 
 const perform = dispatch => ({
-  back: () => dispatch(doHistoryBack()),
-  navigate: path => dispatch(doNavigate(path)),
-  fetchClaimListMine: () => dispatch(doFetchClaimListMine()),
-  claimFirstChannelReward: () => dispatch(doClaimRewardType(rewards.TYPE_FIRST_CHANNEL)),
-  fetchChannelListMine: () => dispatch(doFetchChannelListMine()),
-  resolveUri: uri => dispatch(doResolveUri(uri)),
-  createChannel: (name, amount) => dispatch(doCreateChannel(name, amount)),
-  publish: params => dispatch(doPublish(params)),
+  // back: () => dispatch(doHistoryBack()),
+  // navigate: path => dispatch(doNavigate(path)),
+  // fetchClaimListMine: () => dispatch(doFetchClaimListMine()),
+  // claimFirstChannelReward: () => dispatch(doClaimRewardType(rewards.TYPE_FIRST_CHANNEL)),
+  // fetchChannelListMine: () => dispatch(doFetchChannelListMine()),
+  // resolveUri: uri => dispatch(doResolveUri(uri)),
+  // createChannel: (name, amount) => dispatch(doCreateChannel(name, amount)),
+  // publish: params => dispatch(doPublish(params)),
+  updateFilePath: filePath => dispatch(doUpdateFilePath(filePath))
 });
 
 export default connect(select, perform)(PublishPage);
