@@ -27,7 +27,7 @@ export const makeSelectFileInfoForUri = uri =>
   createSelector(selectClaimsByUri, selectFileInfosByOutpoint, (claims, byOutpoint) => {
     const claim = claims[uri];
     const outpoint = claim ? `${claim.txid}:${claim.nout}` : undefined;
-
+    // debugger;
     return outpoint ? byOutpoint[outpoint] : undefined;
   });
 

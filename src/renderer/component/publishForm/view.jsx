@@ -3,7 +3,7 @@
 import React from 'react';
 import lbry from 'lbry';
 import { isNameValid, buildURI, regexInvalidURI } from 'lbryURI';
-import { Form, FormRow } from 'component/common/form';
+import { Form, FormField, FormRow } from 'component/common/form';
 import Link from 'component/link';
 import Modal from 'modal/modal';
 import { BusyMessage } from 'component/common';
@@ -13,515 +13,554 @@ class PublishForm extends React.PureComponent {
   constructor(props) {
     super(props);
 
+    this.handleFileChange = this.handleFileChange.bind(this);
+
     this._requiredFields = ['name', 'bid', 'meta_title', 'tosAgree'];
 
     this._defaultCopyrightNotice = 'All rights reserved.';
     this._defaultPaidPrice = 0.01;
 
     this.state = {
-      id: null,
-      uri: null,
-      rawName: '',
-      name: '',
-      bid: 10,
-      hasFile: false,
-      feeAmount: '',
-      feeCurrency: 'LBC',
-      channel: 'anonymous',
-      newChannelName: '@',
-      newChannelBid: 10,
-      meta_title: '',
-      meta_thumbnail: '',
-      meta_description: '',
-      meta_language: 'en',
-      meta_nsfw: '0',
-      licenseType: '',
-      copyrightNotice: this._defaultCopyrightNotice,
-      otherLicenseDescription: '',
-      otherLicenseUrl: '',
-      tosAgree: false,
-      prefillDone: false,
-      uploadProgress: 0.0,
-      uploaded: false,
-      errorMessage: null,
-      submitting: false,
-      creatingChannel: false,
-      modal: null,
-      isFee: false,
-      customUrl: false,
-      source: null,
-      mode: 'publish',
+      // id: null,
+      // uri: null,
+      // rawName: '',
+      // name: '',
+      // bid: 10,
+      // hasFile: false,
+      // feeAmount: '',
+      // feeCurrency: 'LBC',
+      // channel: 'anonymous',
+      // newChannelName: '@',
+      // newChannelBid: 10,
+      // meta_title: '',
+      // meta_thumbnail: '',
+      // meta_description: '',
+      // meta_language: 'en',
+      // meta_nsfw: '0',
+      // licenseType: '',
+      // copyrightNotice: this._defaultCopyrightNotice,
+      // otherLicenseDescription: '',
+      // otherLicenseUrl: '',
+      // tosAgree: false,
+      // prefillDone: false,
+      // uploadProgress: 0.0,
+      // uploaded: false,
+      // errorMessage: null,
+      // submitting: false,
+      // creatingChannel: false,
+      // modal: null,
+      // isFee: false,
+      // customUrl: false,
+      // source: null,
+      // mode: 'publish',
     };
   }
 
-  _updateChannelList(channel) {
-    const { fetchingChannels, fetchChannelListMine } = this.props;
-
-    if (!fetchingChannels) fetchChannelListMine();
-  }
-
-  handleSubmit() {
-    const { balance } = this.props;
-    const { bid } = this.state;
-
-    if (bid > balance) {
-      this.handlePublishError({ message: 'insufficient funds' });
-
-      return;
-    }
-
-    this.setState({
-      submitting: true,
-    });
-
-    const checkFields = this._requiredFields;
-    if (!this.myClaimExists()) {
-      checkFields.unshift('file');
-    }
-
-    let missingFieldFound = false;
-    for (const fieldName of checkFields) {
-      const field = this.refs[fieldName];
-      if (field) {
-        if (field.getValue() === '' || field.getValue() === false) {
-          field.showRequiredError();
-          if (!missingFieldFound) {
-            field.focus();
-            missingFieldFound = true;
-          }
-        } else {
-          field.clearError();
-        }
-      }
-    }
-
-    if (missingFieldFound) {
-      this.setState({
-        submitting: false,
-      });
-      return;
-    }
-
-    const metadata = {};
-
-    for (const metaField of ['title', 'description', 'thumbnail', 'language']) {
-      const value = this.state[`meta_${metaField}`];
-      if (value) {
-        metadata[metaField] = value;
-      }
-    }
-
-    metadata.license = this.getLicense();
-    metadata.licenseUrl = this.getLicenseUrl();
-    metadata.nsfw = !!parseInt(this.state.meta_nsfw);
-
-    const doPublish = () => {
-      const publishArgs = {
-        name: this.state.name,
-        bid: parseFloat(this.state.bid),
-        metadata,
-        ...(this.state.channel != 'new' && this.state.channel != 'anonymous'
-          ? { channel_name: this.state.channel }
-          : {}),
-      };
-
-      const { source } = this.state;
-
-      if (this.refs.file.getValue() !== '') {
-        publishArgs.file_path = this.refs.file.getValue();
-      } else if (source) {
-        publishArgs.sources = source;
-      }
-
-      const success = claim => {};
-      const failure = error => this.handlePublishError(error);
-
-      this.handlePublishStarted();
-      this.props.publish(publishArgs).then(success, failure);
-    };
-
-    if (this.state.isFee && parseFloat(this.state.feeAmount) > 0) {
-      lbry.wallet_unused_address().then(address => {
-        metadata.fee = {
-          currency: this.state.feeCurrency,
-          amount: parseFloat(this.state.feeAmount),
-          address,
-        };
-
-        doPublish();
-      });
-    } else {
-      doPublish();
-    }
-  }
-
-  handlePublishStarted() {
-    this.setState({
-      modal: 'publishStarted',
-    });
-  }
-
-  handlePublishStartedConfirmed() {
-    this.props.navigate('/published');
-  }
-
-  handlePublishError(error) {
-    this.setState({
-      submitting: false,
-      modal: 'error',
-      errorMessage: error.message,
-    });
-  }
-
-  claim() {
-    const { claimsByUri } = this.props;
-    const { uri } = this.state;
-    return claimsByUri[uri];
-  }
-
-  topClaimValue() {
-    if (!this.claim()) return null;
-
-    return parseFloat(this.claim().effective_amount);
-  }
-
+  // _updateChannelList(channel) {
+  //   const { fetchingChannels, fetchChannelListMine } = this.props;
+  //
+  //   if (!fetchingChannels) fetchChannelListMine();
+  // }
+  //
+  // handleSubmit() {
+  //   const { balance } = this.props;
+  //   const { bid } = this.state;
+  //
+  //   if (bid > balance) {
+  //     this.handlePublishError({ message: 'insufficient funds' });
+  //
+  //     return;
+  //   }
+  //
+  //   this.setState({
+  //     submitting: true,
+  //   });
+  //
+  //   const checkFields = this._requiredFields;
+  //   if (!this.myClaimExists()) {
+  //     checkFields.unshift('file');
+  //   }
+  //
+  //   let missingFieldFound = false;
+  //   for (const fieldName of checkFields) {
+  //     const field = this.refs[fieldName];
+  //     if (field) {
+  //       if (field.getValue() === '' || field.getValue() === false) {
+  //         field.showRequiredError();
+  //         if (!missingFieldFound) {
+  //           field.focus();
+  //           missingFieldFound = true;
+  //         }
+  //       } else {
+  //         field.clearError();
+  //       }
+  //     }
+  //   }
+  //
+  //   if (missingFieldFound) {
+  //     this.setState({
+  //       submitting: false,
+  //     });
+  //     return;
+  //   }
+  //
+  //   const metadata = {};
+  //
+  //   for (const metaField of ['title', 'description', 'thumbnail', 'language']) {
+  //     const value = this.state[`meta_${metaField}`];
+  //     if (value) {
+  //       metadata[metaField] = value;
+  //     }
+  //   }
+  //
+  //   metadata.license = this.getLicense();
+  //   metadata.licenseUrl = this.getLicenseUrl();
+  //   metadata.nsfw = !!parseInt(this.state.meta_nsfw);
+  //
+  //   const doPublish = () => {
+  //     const publishArgs = {
+  //       name: this.state.name,
+  //       bid: parseFloat(this.state.bid),
+  //       metadata,
+  //       ...(this.state.channel != 'new' && this.state.channel != 'anonymous'
+  //         ? { channel_name: this.state.channel }
+  //         : {}),
+  //     };
+  //
+  //     const { source } = this.state;
+  //
+  //     if (this.refs.file.getValue() !== '') {
+  //       publishArgs.file_path = this.refs.file.getValue();
+  //     } else if (source) {
+  //       publishArgs.sources = source;
+  //     }
+  //
+  //     const success = claim => {};
+  //     const failure = error => this.handlePublishError(error);
+  //
+  //     this.handlePublishStarted();
+  //     this.props.publish(publishArgs).then(success, failure);
+  //   };
+  //
+  //   if (this.state.isFee && parseFloat(this.state.feeAmount) > 0) {
+  //     lbry.wallet_unused_address().then(address => {
+  //       metadata.fee = {
+  //         currency: this.state.feeCurrency,
+  //         amount: parseFloat(this.state.feeAmount),
+  //         address,
+  //       };
+  //
+  //       doPublish();
+  //     });
+  //   } else {
+  //     doPublish();
+  //   }
+  // }
+  //
+  // handlePublishStarted() {
+  //   this.setState({
+  //     modal: 'publishStarted',
+  //   });
+  // }
+  //
+  // handlePublishStartedConfirmed() {
+  //   this.props.navigate('/published');
+  // }
+  //
+  // handlePublishError(error) {
+  //   this.setState({
+  //     submitting: false,
+  //     modal: 'error',
+  //     errorMessage: error.message,
+  //   });
+  // }
+  //
+  // claim() {
+  //   const { claimsByUri } = this.props;
+  //   const { uri } = this.state;
+  //   return claimsByUri[uri];
+  // }
+  //
+  // topClaimValue() {
+  //   if (!this.claim()) return null;
+  //
+  //   return parseFloat(this.claim().effective_amount);
+  // }
+  //
   myClaimExists() {
-    const { myClaims } = this.props;
-    const { name } = this.state;
-
-    if (!name) return false;
-
-    return !!myClaims.find(claim => claim.name === name);
+    // const { myClaims } = this.props;
+    // const { name } = this.state;
+    //
+    // if (!name) return false;
+    //
+    // return !!myClaims.find(claim => claim.name === name);
   }
+  //
+  // handleEditClaim() {
+  //   const claimInfo = this.claim() || this.myClaimInfo();
+  //
+  //   if (claimInfo) {
+  //     this.handlePrefillClaim(claimInfo);
+  //   }
+  // }
+  //
+  // topClaimIsMine() {
+  //   const myClaimInfo = this.myClaimInfo();
+  //   const { claimsByUri } = this.props;
+  //   const { uri } = this.state;
+  //
+  //   if (!uri) return null;
+  //
+  //   const claim = claimsByUri[uri];
+  //
+  //   if (!claim) return true;
+  //   if (!myClaimInfo) return false;
+  //
+  //   return myClaimInfo.amount >= claim.amount;
+  // }
+  //
+  // myClaimInfo() {
+  //   const { id } = this.state;
+  //
+  //   return Object.values(this.props.myClaims).find(claim => claim.claim_id === id);
+  // }
+  //
+  // handleNameChange(event) {
+  //   const rawName = event.target.value;
+  //   this.setState({
+  //     customUrl: Boolean(rawName.length),
+  //   });
+  //
+  //   this.nameChanged(rawName);
+  // }
+  //
+  // nameChanged(rawName) {
+  //   if (!rawName) {
+  //     this.setState({
+  //       rawName: '',
+  //       name: '',
+  //       uri: '',
+  //       prefillDone: false,
+  //       mode: 'publish',
+  //     });
+  //
+  //     return;
+  //   }
+  //
+  //   if (!isNameValid(rawName, false)) {
+  //     this.refs.name.showError(__('LBRY names must contain only letters, numbers and dashes.'));
+  //     return;
+  //   }
+  //
+  //   let channel = '';
+  //   if (this.state.channel !== 'anonymous') channel = this.state.channel;
+  //
+  //   const name = rawName.toLowerCase();
+  //   const uri = buildURI({ contentName: name, channelName: channel });
+  //   this.setState({
+  //     rawName,
+  //     name,
+  //     prefillDone: false,
+  //     mode: 'publish',
+  //     uri,
+  //   });
+  //
+  //   if (this.resolveUriTimeout) {
+  //     clearTimeout(this.resolveUriTimeout);
+  //     this.resolveUriTimeout = undefined;
+  //   }
+  //   const resolve = () => this.props.resolveUri(uri);
+  //
+  //   this.resolveUriTimeout = setTimeout(resolve.bind(this), 500, {
+  //     once: true,
+  //   });
+  // }
+  //
+  // handlePrefillClaim(claimInfo) {
+  //   const { claim_id, name, channel_name, amount } = claimInfo;
+  //   const { source, metadata } = claimInfo.value.stream;
+  //
+  //   const { license, licenseUrl, title, thumbnail, description, language, nsfw } = metadata;
+  //
+  //   const newState = {
+  //     id: claim_id,
+  //     channel: channel_name || 'anonymous',
+  //     bid: amount,
+  //     meta_title: title,
+  //     meta_thumbnail: thumbnail,
+  //     meta_description: description,
+  //     meta_language: language,
+  //     meta_nsfw: nsfw,
+  //     mode: 'edit',
+  //     prefillDone: true,
+  //     rawName: name,
+  //     name,
+  //     source,
+  //   };
+  //
+  //   if (license == this._defaultCopyrightNotice) {
+  //     newState.licenseType = 'copyright';
+  //     newState.copyrightNotice = this._defaultCopyrightNotice;
+  //   } else {
+  //     // If the license URL or description matches one of the drop-down options, use that
+  //     let licenseType = 'other'; // Will be overridden if we find a match
+  //     for (const option of this._meta_license.getOptions()) {
+  //       if (option.getAttribute('data-url') === licenseUrl || option.text === license) {
+  //         licenseType = option.value;
+  //       }
+  //     }
+  //
+  //     if (licenseType == 'other') {
+  //       newState.otherLicenseDescription = license;
+  //       newState.otherLicenseUrl = licenseUrl;
+  //     }
+  //     newState.licenseType = licenseType;
+  //   }
+  //
+  //   this.setState(newState);
+  // }
+  //
+  // handleBidChange(event) {
+  //   this.setState({
+  //     bid: event.target.value,
+  //   });
+  // }
+  //
+  // handleFeeChange(newValue) {
+  //   this.setState({
+  //     feeAmount: newValue.amount,
+  //     feeCurrency: newValue.currency,
+  //   });
+  // }
+  //
+  // handleFeePrefChange(feeEnabled) {
+  //   this.setState({
+  //     isFee: feeEnabled,
+  //     feeAmount: this.state.feeAmount == '' ? this._defaultPaidPrice : this.state.feeAmount,
+  //   });
+  // }
+  //
+  // handleMetadataChange(event) {
+  //   /**
+  //    * This function is used for all metadata inputs that store the final value directly into state.
+  //    * The only exceptions are inputs related to license description and license URL, which require
+  //    * more complex logic and the final value is determined at submit time.
+  //    */
+  //   this.setState({
+  //     [`meta_${event.target.name}`]: event.target.value,
+  //   });
+  // }
+  //
+  // handleDescriptionChanged(text) {
+  //   this.setState({
+  //     meta_description: text,
+  //   });
+  // }
+  //
+  // handleLicenseTypeChange(event) {
+  //   this.setState({
+  //     licenseType: event.target.value,
+  //   });
+  // }
+  //
+  // handleCopyrightNoticeChange(event) {
+  //   this.setState({
+  //     copyrightNotice: event.target.value,
+  //   });
+  // }
+  //
+  // handleOtherLicenseDescriptionChange(event) {
+  //   this.setState({
+  //     otherLicenseDescription: event.target.value,
+  //   });
+  // }
+  //
+  // handleOtherLicenseUrlChange(event) {
+  //   this.setState({
+  //     otherLicenseUrl: event.target.value,
+  //   });
+  // }
+  //
+  // handleChannelChange(channelName) {
+  //   this.setState({
+  //     mode: 'publish',
+  //     channel: channelName,
+  //   });
+  //   const nameChanged = () => this.nameChanged(this.state.rawName);
+  //   setTimeout(nameChanged.bind(this), 500, { once: true });
+  // }
+  //
+  // handleTOSChange(event) {
+  //   this.setState({
+  //     tosAgree: event.target.checked,
+  //   });
+  // }
+  //
+  // getLicense() {
+  //   switch (this.state.licenseType) {
+  //     case 'copyright':
+  //       return this.state.copyrightNotice;
+  //     case 'other':
+  //       return this.state.otherLicenseDescription;
+  //     default:
+  //       return this._meta_license.getSelectedElement().text;
+  //   }
+  // }
+  //
+  // getLicenseUrl() {
+  //   switch (this.state.licenseType) {
+  //     case 'copyright':
+  //       return '';
+  //     case 'other':
+  //       return this.state.otherLicenseUrl;
+  //     default:
+  //       return this._meta_license.getSelectedElement().getAttribute('data-url');
+  //   }
+  // }
+  //
+  // componentWillMount() {
+  //   this.props.fetchClaimListMine();
+  //   this._updateChannelList();
+  //
+  //   const { id } = this.props.params;
+  //   this.setState({ id });
+  // }
+  //
+  // componentDidMount() {
+  //   this.handleEditClaim();
+  // }
+  //
+  // onFileChange() {
+  //   const { mode } = this.state;
+  //   if (this.refs.file.getValue()) {
+  //     this.setState({ hasFile: true });
+  //     if (!this.state.customUrl && mode !== 'edit') {
+  //       const fileName = this._getFileName(this.refs.file.getValue());
+  //       this.nameChanged(fileName);
+  //     }
+  //   } else {
+  //     this.setState({ hasFile: false });
+  //   }
+  // }
+  //
+  // _getFileName(fileName) {
+  //   const path = require('path');
+  //   const extension = path.extname(fileName);
+  //
+  //   fileName = path.basename(fileName, extension);
+  //   fileName = fileName.replace(regexInvalidURI, '');
+  //   return fileName;
+  // }
+  //
+  // getNameBidHelpText() {
+  //   const { prefillDone, name, uri } = this.state;
+  //   const { resolvingUris } = this.props;
+  //   const claim = this.claim();
+  //
+  //   if (prefillDone) {
+  //     return __('Existing claim data was prefilled');
+  //   }
+  //
+  //   if (uri && resolvingUris.indexOf(uri) !== -1 && claim === undefined) {
+  //     return __('Checking...');
+  //   } else if (!name) {
+  //     return __('Select a URL for this publish.');
+  //   } else if (!claim) {
+  //     return __('This URL is unused.');
+  //   } else if (this.myClaimExists() && !prefillDone) {
+  //     return (
+  //       <span>
+  //         {__('You already have a claim with this name.')}{' '}
+  //         <Link label={__('Edit existing claim')} onClick={() => this.handleEditClaim()} />
+  //       </span>
+  //     );
+  //   } else if (claim) {
+  //     const topClaimValue = this.topClaimValue();
+  //     if (topClaimValue === 1) {
+  //       return (
+  //         <span>
+  //           {__(
+  //             'A deposit of at least one credit is required to win "%s". However, you can still get a permanent URL for any amount.',
+  //             name
+  //           )}
+  //         </span>
+  //       );
+  //     }
+  //     return (
+  //       <span>
+  //         {__(
+  //           'A deposit of at least "%s" credits is required to win "%s". However, you can still get a permanent URL for any amount.',
+  //           topClaimValue,
+  //           name
+  //         )}
+  //       </span>
+  //     );
+  //   }
+  //   return '';
+  // }
+  //
+  // closeModal() {
+  //   this.setState({
+  //     modal: null,
+  //   });
+  // }
 
-  handleEditClaim() {
-    const claimInfo = this.claim() || this.myClaimInfo();
+  handleFileChange(event: SyntheticInput<*>) {
+    const { target: { files } } = event;
 
-    if (claimInfo) {
-      this.handlePrefillClaim(claimInfo);
-    }
-  }
-
-  topClaimIsMine() {
-    const myClaimInfo = this.myClaimInfo();
-    const { claimsByUri } = this.props;
-    const { uri } = this.state;
-
-    if (!uri) return null;
-
-    const claim = claimsByUri[uri];
-
-    if (!claim) return true;
-    if (!myClaimInfo) return false;
-
-    return myClaimInfo.amount >= claim.amount;
-  }
-
-  myClaimInfo() {
-    const { id } = this.state;
-
-    return Object.values(this.props.myClaims).find(claim => claim.claim_id === id);
-  }
-
-  handleNameChange(event) {
-    const rawName = event.target.value;
-    this.setState({
-      customUrl: Boolean(rawName.length),
-    });
-
-    this.nameChanged(rawName);
-  }
-
-  nameChanged(rawName) {
-    if (!rawName) {
-      this.setState({
-        rawName: '',
-        name: '',
-        uri: '',
-        prefillDone: false,
-        mode: 'publish',
-      });
-
+    if (!files.length) {
+      // disable rest of publish form
       return;
     }
 
-    if (!isNameValid(rawName, false)) {
-      this.refs.name.showError(__('LBRY names must contain only letters, numbers and dashes.'));
-      return;
-    }
-
-    let channel = '';
-    if (this.state.channel !== 'anonymous') channel = this.state.channel;
-
-    const name = rawName.toLowerCase();
-    const uri = buildURI({ contentName: name, channelName: channel });
-    this.setState({
-      rawName,
-      name,
-      prefillDone: false,
-      mode: 'publish',
-      uri,
-    });
-
-    if (this.resolveUriTimeout) {
-      clearTimeout(this.resolveUriTimeout);
-      this.resolveUriTimeout = undefined;
-    }
-    const resolve = () => this.props.resolveUri(uri);
-
-    this.resolveUriTimeout = setTimeout(resolve.bind(this), 500, {
-      once: true,
-    });
-  }
-
-  handlePrefillClaim(claimInfo) {
-    const { claim_id, name, channel_name, amount } = claimInfo;
-    const { source, metadata } = claimInfo.value.stream;
-
-    const { license, licenseUrl, title, thumbnail, description, language, nsfw } = metadata;
-
-    const newState = {
-      id: claim_id,
-      channel: channel_name || 'anonymous',
-      bid: amount,
-      meta_title: title,
-      meta_thumbnail: thumbnail,
-      meta_description: description,
-      meta_language: language,
-      meta_nsfw: nsfw,
-      mode: 'edit',
-      prefillDone: true,
-      rawName: name,
-      name,
-      source,
-    };
-
-    if (license == this._defaultCopyrightNotice) {
-      newState.licenseType = 'copyright';
-      newState.copyrightNotice = this._defaultCopyrightNotice;
-    } else {
-      // If the license URL or description matches one of the drop-down options, use that
-      let licenseType = 'other'; // Will be overridden if we find a match
-      for (const option of this._meta_license.getOptions()) {
-        if (option.getAttribute('data-url') === licenseUrl || option.text === license) {
-          licenseType = option.value;
-        }
-      }
-
-      if (licenseType == 'other') {
-        newState.otherLicenseDescription = license;
-        newState.otherLicenseUrl = licenseUrl;
-      }
-      newState.licenseType = licenseType;
-    }
-
-    this.setState(newState);
-  }
-
-  handleBidChange(event) {
-    this.setState({
-      bid: event.target.value,
-    });
-  }
-
-  handleFeeChange(newValue) {
-    this.setState({
-      feeAmount: newValue.amount,
-      feeCurrency: newValue.currency,
-    });
-  }
-
-  handleFeePrefChange(feeEnabled) {
-    this.setState({
-      isFee: feeEnabled,
-      feeAmount: this.state.feeAmount == '' ? this._defaultPaidPrice : this.state.feeAmount,
-    });
-  }
-
-  handleMetadataChange(event) {
-    /**
-     * This function is used for all metadata inputs that store the final value directly into state.
-     * The only exceptions are inputs related to license description and license URL, which require
-     * more complex logic and the final value is determined at submit time.
-     */
-    this.setState({
-      [`meta_${event.target.name}`]: event.target.value,
-    });
-  }
-
-  handleDescriptionChanged(text) {
-    this.setState({
-      meta_description: text,
-    });
-  }
-
-  handleLicenseTypeChange(event) {
-    this.setState({
-      licenseType: event.target.value,
-    });
-  }
-
-  handleCopyrightNoticeChange(event) {
-    this.setState({
-      copyrightNotice: event.target.value,
-    });
-  }
-
-  handleOtherLicenseDescriptionChange(event) {
-    this.setState({
-      otherLicenseDescription: event.target.value,
-    });
-  }
-
-  handleOtherLicenseUrlChange(event) {
-    this.setState({
-      otherLicenseUrl: event.target.value,
-    });
-  }
-
-  handleChannelChange(channelName) {
-    this.setState({
-      mode: 'publish',
-      channel: channelName,
-    });
-    const nameChanged = () => this.nameChanged(this.state.rawName);
-    setTimeout(nameChanged.bind(this), 500, { once: true });
-  }
-
-  handleTOSChange(event) {
-    this.setState({
-      tosAgree: event.target.checked,
-    });
-  }
-
-  getLicense() {
-    switch (this.state.licenseType) {
-      case 'copyright':
-        return this.state.copyrightNotice;
-      case 'other':
-        return this.state.otherLicenseDescription;
-      default:
-        return this._meta_license.getSelectedElement().text;
-    }
-  }
-
-  getLicenseUrl() {
-    switch (this.state.licenseType) {
-      case 'copyright':
-        return '';
-      case 'other':
-        return this.state.otherLicenseUrl;
-      default:
-        return this._meta_license.getSelectedElement().getAttribute('data-url');
-    }
-  }
-
-  componentWillMount() {
-    this.props.fetchClaimListMine();
-    this._updateChannelList();
-
-    const { id } = this.props.params;
-    this.setState({ id });
-  }
-
-  componentDidMount() {
-    this.handleEditClaim();
-  }
-
-  onFileChange() {
-    const { mode } = this.state;
-    if (this.refs.file.getValue()) {
-      this.setState({ hasFile: true });
-      if (!this.state.customUrl && mode !== 'edit') {
-        const fileName = this._getFileName(this.refs.file.getValue());
-        this.nameChanged(fileName);
-      }
-    } else {
-      this.setState({ hasFile: false });
-    }
-  }
-
-  _getFileName(fileName) {
-    const path = require('path');
-    const extension = path.extname(fileName);
-
-    fileName = path.basename(fileName, extension);
-    fileName = fileName.replace(regexInvalidURI, '');
-    return fileName;
-  }
-
-  getNameBidHelpText() {
-    const { prefillDone, name, uri } = this.state;
-    const { resolvingUris } = this.props;
-    const claim = this.claim();
-
-    if (prefillDone) {
-      return __('Existing claim data was prefilled');
-    }
-
-    if (uri && resolvingUris.indexOf(uri) !== -1 && claim === undefined) {
-      return __('Checking...');
-    } else if (!name) {
-      return __('Select a URL for this publish.');
-    } else if (!claim) {
-      return __('This URL is unused.');
-    } else if (this.myClaimExists() && !prefillDone) {
-      return (
-        <span>
-          {__('You already have a claim with this name.')}{' '}
-          <Link label={__('Edit existing claim')} onClick={() => this.handleEditClaim()} />
-        </span>
-      );
-    } else if (claim) {
-      const topClaimValue = this.topClaimValue();
-      if (topClaimValue === 1) {
-        return (
-          <span>
-            {__(
-              'A deposit of at least one credit is required to win "%s". However, you can still get a permanent URL for any amount.',
-              name
-            )}
-          </span>
-        );
-      }
-      return (
-        <span>
-          {__(
-            'A deposit of at least "%s" credits is required to win "%s". However, you can still get a permanent URL for any amount.',
-            topClaimValue,
-            name
-          )}
-        </span>
-      );
-    }
-    return '';
-  }
-
-  closeModal() {
-    this.setState({
-      modal: null,
-    });
+    const chosenFile = 
   }
 
   render() {
-    const { mode, submitting } = this.state;
+    // const { mode, submitting } = this.state;
+    //
+    // const lbcInputHelp = __('This LBC remains yours and the deposit can be undone at any time.');
+    //
+    // let submitLabel = !submitting ? __('Publish') : __('Publishing...');
+    //
+    // if (mode === 'edit') {
+    //   submitLabel = !submitting ? __('Update') : __('Updating...');
+    // }
 
-    const lbcInputHelp = __('This LBC remains yours and the deposit can be undone at any time.');
+    console.log('props', this.props);
 
-    let submitLabel = !submitting ? __('Publish') : __('Publishing...');
-
-    if (mode === 'edit') {
-      submitLabel = !submitting ? __('Update') : __('Updating...');
+    const onFileChange = (e) => {
+      console.log('e', e);
+      debugger;
     }
 
-    return null;
+    return (
+      <Form onSubmit={() => {}}>
+        <div className="card--section">
+          <div className="card__title">{__('Content')}</div>
+          <div className="card__subtitle">{__('What are you publishing?')}</div>
+          <FormField
+            name="publish_content_file"
+            type="file"
+            onChange={this.handleFileChange}
+            helper={
+              this.myClaimExists()
+                ? __(
+                    "If you don't choose a file, the file from your existing claim will be used."
+                  )
+                : ""
+            }
+          />
+        </div>
+      </Form>
+    );
 
     // return (
     //   <main className="main--single-column">
     //     <Form onSubmit={this.handleSubmit.bind(this)}>
     //       <section className="card">
     //         <div className="card__title-primary">
-    //           <h4>{__('Content')}</h4>
+    //           <h4></h4>
     //           <div className="card__subtitle">{__('What are you publishing?')}</div>
     //         </div>
     //         <div className="card__content">

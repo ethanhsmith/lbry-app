@@ -23,7 +23,7 @@ class FileActions extends React.PureComponent<Props> {
 
     const claimId = fileInfo ? fileInfo.claim_id : '';
     const showDelete = fileInfo && Object.keys(fileInfo).length > 0;
-
+    console.log('claimId', claimId);
     return (
       <section className={classnames('card__actions', { 'card__actions--vertical': vertical })}>
         <FileDownloadLink uri={uri} />

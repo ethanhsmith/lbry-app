@@ -20,14 +20,17 @@ import { selectBalance } from 'redux/selectors/wallet';
 import rewards from 'rewards';
 import PublishPage from './view';
 
-const select = state => ({
-  balance: selectBalance(state),
-  myClaims: selectMyClaims(state),
-  fetchingChannels: selectFetchingMyChannels(state),
-  channels: selectMyChannelClaims(state),
-  claimsByUri: selectClaimsByUri(state),
-  resolvingUris: selectResolvingUris(state),
-});
+const select = (state, props) => {
+  // debugger;
+  return {
+    balance: selectBalance(state),
+    myClaims: selectMyClaims(state),
+    fetchingChannels: selectFetchingMyChannels(state),
+    channels: selectMyChannelClaims(state),
+    claimsByUri: selectClaimsByUri(state),
+    resolvingUris: selectResolvingUris(state),
+  }
+};
 
 const perform = dispatch => ({
   back: () => dispatch(doHistoryBack()),
